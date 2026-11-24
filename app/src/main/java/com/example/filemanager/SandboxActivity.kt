@@ -28,11 +28,6 @@ class SandboxActivity : Activity() {
     private var files: List<File> = emptyList()
     private val status = HashMap<String, String>()
     private var progress = 0
-
-override fun onProgressChanged(v: WebView, p: Int) {
-    progress = p
-    render()
-}
     private var editing = false
     private fun dp(v: Int) = U.dp(this, v)
 
