@@ -31,7 +31,7 @@ class SandboxActivity : Activity() {
     private var editing = false
     private fun dp(v: Int) = U.dp(this, v)
 
-    private fun setProgress(newProgress: Int) {
+    private fun updateProgress(newProgress: Int) {
         progress = newProgress
         runOnUiThread { render() }
     }
@@ -55,7 +55,7 @@ class SandboxActivity : Activity() {
             }
             webChromeClient = object : WebChromeClient() {
                 override fun onProgressChanged(v: WebView, p: Int) {
-                    setProgress(p)
+                    updateProgress(p)
                 }
                 override fun onConsoleMessage(m: ConsoleMessage): Boolean {
                     if (m.messageLevel() == ConsoleMessage.MessageLevel.ERROR)
