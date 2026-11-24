@@ -27,9 +27,14 @@ class SandboxActivity : Activity() {
     private var selected: File? = null
     private var files: List<File> = emptyList()
     private val status = HashMap<String, String>()
-    private var progress = 0
+    private var progress: Int = 0
     private var editing = false
     private fun dp(v: Int) = U.dp(this, v)
+
+    private fun setProgress(newProgress: Int) {
+        progress = newProgress
+        runOnUiThread { render() }
+    }
 
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
@@ -49,7 +54,9 @@ class SandboxActivity : Activity() {
                 }
             }
             webChromeClient = object : WebChromeClient() {
-                override fun onProgressChanged(v: WebView, p: Int) { progress = p; render() }
+                override fun onProgressChanged(v: WebView, p: Int) {
+                    setProgress(p)
+                }
                 override fun onConsoleMessage(m: ConsoleMessage): Boolean {
                     if (m.messageLevel() == ConsoleMessage.MessageLevel.ERROR)
                         mark(m.sourceId().substringAfterLast('/'), "JS error line ${m.lineNumber()}: ${m.message()}")
