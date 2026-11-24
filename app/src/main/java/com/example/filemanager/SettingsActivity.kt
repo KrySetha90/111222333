@@ -66,10 +66,30 @@ class SettingsActivity : Activity() {
             .setNegativeButton("Cancel", null).show()
     }
     private fun pickColor() {
-        val colors = intArrayOf(0xFFFF4545, 0xFFF4B34A, 0xFFF9E86B, 0xFF22DD22, 0xFF18E0E0, 0xFF4050F5, 0xFFDD44DD,
-            0xFFFFFFFF, 0xFFBDBDBD, 0xFF888888, 0xFF444444, 0xFF000000, 0xFF5BB5D8, 0xFF99C99F,
-            0xFF00FF00, 0xFF525C6C, 0xFF9CC8E8, 0xFFBB86FC, 0xFF0AC82A, 0xFF3D4D6B, 0xFFBFB8D6, 0xFFE0D4F5)
-            .map { it.toInt() }
+        val colors = intArrayOf(val colors = intArrayOf(
+    0xFFFF4545.toInt(),
+    0xFFF4B34A.toInt(),
+    0xFFF9E86B.toInt(),
+    0xFF22DD22.toInt(),
+    0xFF18E0E0.toInt(),
+    0xFF4050F5.toInt(),
+    0xFFDD44DD.toInt(),
+    0xFFFFFFFF.toInt(),
+    0xFFBDBDBD.toInt(),
+    0xFF888888.toInt(),
+    0xFF444444.toInt(),
+    0xFF000000.toInt(),
+    0xFF5BB5D8.toInt(),
+    0xFF99C99F.toInt(),
+    0xFF00FF00.toInt(),
+    0xFF525C6C.toInt(),
+    0xFF9CC8E8.toInt(),
+    0xFFBB86FC.toInt(),
+    0xFF0AC82A.toInt(),
+    0xFF3D4D6B.toInt(),
+    0xFFBFB8D6.toInt(),
+    0xFFE0D4F5.toInt()
+    )}
         var sel = U.bg(this)
         val lab = TextView(this).apply { textSize = 18f; gravity = android.view.Gravity.CENTER; setPadding(dp(8), dp(10), dp(8), dp(10)) }
         fun upd() { lab.text = String.format("#%06X (100%%)", sel and 0xFFFFFF); lab.setBackgroundColor(sel); lab.setTextColor(U.fg(sel)) }
