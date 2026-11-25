@@ -30,7 +30,7 @@ class SettingsActivity : Activity() {
         col.addView(U.btn(this, "◀ back") { finish() }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 0, 0, dp(10)) })
         val names = mapOf("all" to "All files", "text" to "Text & code", "images" to "Images", "archives" to "Archives", "web" to "Web files", "folders" to "Folders only")
         col.addView(card("FILE TYPE", "Show: ${names[p().getString("filter", "all")]}") { pickFilter(names) })
-        col.addView(card("CUSTOM · background color", String.format("#%06X", U.bg(this) and 0xFFFFFF)) { pickColor() })
+        col.addView(card("CUSTOM · background", bgLabel()) { pickBackground() })
         col.addView(card("CUSTOM · text size", "${U.textSp(this)} sp") { pickSize() })
         col.addView(card("CUSTOM · sort by", mapOf("date" to "Date modified", "name" to "Name", "size" to "Size")[U.sort(this)]) { pickSort() })
         col.addView(card("ROOT ACCESS", "Shizuku / SUI: not connected yet (placeholder)") {
@@ -41,16 +41,26 @@ class SettingsActivity : Activity() {
             startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, t), "Report"))
         })
         col.addView(card("permission", if (U.hasAccess(this)) "All-files access: granted" else "All-files access: NOT granted. Tap to grant") { U.askAccess(this) })
-        setContentView(ScrollView(this).apply { setBackgroundColor(0xFFCDB4E8.toInt()); fitsSystemWindows = true; addView(col) })
+        U.styleWindow(this, 0xFFCDB4E8.toInt())
+        setContentView(ScrollView(this).apply { fitsSystemWindows = true; addView(col) })
     }
 
+    private fun bgLabel() = if (U.isGlass()) "Liquid Glass · ${GlassBackground.styles[U.glassStyle()]}" else "Solid color " + String.format("#%06X", U.bg(this) and 0xFFFFFF)
+    private fun pickBackground() {
+        val keys = GlassBackground.styles.keys.toList()
+        val names = keys.map { "Liquid Glass · ${GlassBackground.styles[it]}" } + "Solid color…"
+        U.builder(this).setTitle("Background").setItems(names.toTypedArray()) { _, w ->
+            if (w < keys.size) { p().edit().putBoolean("glass", true).putString("glassStyle", keys[w]).apply(); render() }
+            else { p().edit().putBoolean("glass", false).apply(); render(); pickColor() }
+        }.glass()
+    }
     private fun pickFilter(names: Map<String, String>) {
         val keys = names.keys.toList()
-        AlertDialog.Builder(this).setTitle("File type").setItems(names.values.toTypedArray()) { _, w -> p().edit().putString("filter", keys[w]).apply(); render() }.show()
+        U.builder(this).setTitle("File type").setItems(names.values.toTypedArray()) { _, w -> p().edit().putString("filter", keys[w]).apply(); render() }.glass()
     }
     private fun pickSort() {
         val keys = arrayOf("date", "name", "size")
-        AlertDialog.Builder(this).setTitle("Sort by").setItems(arrayOf("Date modified", "Name", "Size")) { _, w -> p().edit().putString("sort", keys[w]).apply(); render() }.show()
+        U.builder(this).setTitle("Sort by").setItems(arrayOf("Date modified", "Name", "Size")) { _, w -> p().edit().putString("sort", keys[w]).apply(); render() }.glass()
     }
     private fun pickSize() {
         val sb = SeekBar(this).apply { max = 16; progress = U.textSp(context) - 12 }
@@ -61,9 +71,9 @@ class SettingsActivity : Activity() {
             override fun onStopTrackingTouch(s: SeekBar?) {}
         })
         val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(16), dp(20), dp(8)); addView(lab); addView(sb) }
-        AlertDialog.Builder(this).setTitle("Text size").setView(box)
+        U.builder(this).setTitle("Text size").setView(box)
             .setPositiveButton("Apply") { _, _ -> p().edit().putInt("textSp", sb.progress + 12).apply(); render() }
-            .setNegativeButton("Cancel", null).show()
+            .setNegativeButton("Cancel", null).glass()
     }
     private fun pickColor() {
         val colors = intArrayOf(
@@ -96,13 +106,13 @@ class SettingsActivity : Activity() {
         upd()
         val grid = GridLayout(this).apply { columnCount = 6 }
         for (c in colors) grid.addView(View(this).apply {
-            background = U.rounded(c, dp(8).toFloat())
+            background = U.flat(c, dp(8).toFloat())
             layoutParams = GridLayout.LayoutParams().apply { width = dp(44); height = dp(44); setMargins(dp(4), dp(4), dp(4), dp(4)) }
             setOnClickListener { sel = c; upd() }
         })
         val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(12), dp(16), dp(8)); addView(lab); addView(grid) }
-        AlertDialog.Builder(this).setTitle("Background color").setView(box)
+        U.builder(this).setTitle("Background color").setView(box)
             .setPositiveButton("Apply") { _, _ -> p().edit().putInt("bg", sel).apply(); render() }
-            .setNegativeButton("Cancel", null).show()
+            .setNegativeButton("Cancel", null).glass()
     }
 }

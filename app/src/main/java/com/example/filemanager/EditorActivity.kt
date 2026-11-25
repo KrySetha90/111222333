@@ -25,19 +25,20 @@ class EditorActivity : Activity() {
         if (file.length() > 2 * 1024 * 1024) { Toast.makeText(this, "File too large to edit (2 MB max)", Toast.LENGTH_LONG).show(); finish(); return }
         val text = try { file.readText() } catch (e: Exception) { Toast.makeText(this, "Can't read file", Toast.LENGTH_LONG).show(); finish(); return }
 
-        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; fitsSystemWindows = true; setBackgroundColor(Color.WHITE) }
+        U.styleWindow(this, Color.WHITE)
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; fitsSystemWindows = true }
         val top = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; background = U.rounded(0xFFBB8CFF.toInt(), dp(16).toFloat()); setPadding(dp(8), dp(6), dp(8), dp(6)) }
         top.addView(U.btn(this, "◀") { onBackPressed() })
-        val q = EditText(this).apply { hint = "search"; inputType = InputType.TYPE_CLASS_TEXT; setSingleLine(); imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
+        val q = EditText(this).apply { hint = "search"; inputType = InputType.TYPE_CLASS_TEXT; setSingleLine(); setTextColor(U.text()); setHintTextColor(U.text2()); imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
             setOnEditorActionListener { _, _, _ -> find(text.toString()); true } }
         top.addView(q, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         top.addView(U.btn(this, "↓ next") { find(q.text.toString()) })
         top.addView(U.btn(this, "Save", 0xFF4FFAF2.toInt()) { save() })
         root.addView(top)
 
-        root.addView(TextView(this).apply { this.text = file.name; textSize = 18f; setTypeface(typeface, Typeface.BOLD); setTextColor(Color.BLACK); setPadding(dp(16), dp(10), dp(16), dp(4)) })
+        root.addView(TextView(this).apply { this.text = file.name; textSize = 18f; setTypeface(typeface, Typeface.BOLD); setTextColor(U.text()); setPadding(dp(16), dp(10), dp(16), dp(4)) })
         edit = EditText(this).apply {
-            setText(text); gravity = Gravity.TOP or Gravity.START; typeface = Typeface.MONOSPACE; setTextColor(Color.BLACK)
+            setText(text); gravity = Gravity.TOP or Gravity.START; typeface = Typeface.MONOSPACE; setTextColor(U.text())
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
             background = U.rounded(0xFFBFB8D6.toInt(), dp(14).toFloat()); setPadding(dp(14), dp(12), dp(14), dp(12))
             addTextChangedListener(object : TextWatcher {
@@ -66,9 +67,9 @@ class EditorActivity : Activity() {
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         if (!dirty) { super.onBackPressed(); return }
-        AlertDialog.Builder(this).setTitle("Unsaved changes")
+        U.builder(this).setTitle("Unsaved changes")
             .setPositiveButton("Save") { _, _ -> if (save()) finish() }
             .setNegativeButton("Discard") { _, _ -> dirty = false; finish() }
-            .setNeutralButton("Cancel", null).show()
+            .setNeutralButton("Cancel", null).glass()
     }
 }

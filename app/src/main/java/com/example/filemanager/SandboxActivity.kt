@@ -39,8 +39,9 @@ class SandboxActivity : Activity() {
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
         src = File(intent.getStringExtra("path") ?: return finish())
-        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; fitsSystemWindows = true; setBackgroundColor(Color.WHITE); setPadding(dp(10), dp(4), dp(10), dp(8)) }
-        root.addView(TextView(this).apply { text = "website tester / app viewer for test"; textSize = 18f; setTextColor(Color.BLACK) })
+        U.styleWindow(this, Color.WHITE)
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; fitsSystemWindows = true; setPadding(dp(10), dp(4), dp(10), dp(8)) }
+        root.addView(TextView(this).apply { text = "website tester / app viewer for test"; textSize = 18f; setTextColor(U.text()) })
 
         web = WebView(this).apply {
             settings.javaScriptEnabled = true
@@ -68,7 +69,7 @@ class SandboxActivity : Activity() {
         box.addView(web, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         root.addView(box, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f).apply { setMargins(0, dp(6), 0, dp(6)) })
 
-        header = TextView(this).apply { textSize = 15f; setTextColor(0xFF777777.toInt()); setTypeface(typeface, android.graphics.Typeface.BOLD) }
+        header = TextView(this).apply { textSize = 15f; setTextColor(U.text2()); setTypeface(typeface, android.graphics.Typeface.BOLD) }
         root.addView(header)
         listBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(ScrollView(this).apply { addView(listBox) }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(140)))
@@ -114,7 +115,7 @@ class SandboxActivity : Activity() {
             val rel = base?.let { f.relativeTo(it).path } ?: f.name
             listBox.addView(TextView(this).apply {
                 text = "- $rel   : ${status[f.absolutePath] ?: "checking…"}"; textSize = 14f
-                setTextColor(0xFF777777.toInt()); setPadding(dp(4), dp(4), dp(4), dp(4))
+                setTextColor(U.text2()); setPadding(dp(4), dp(4), dp(4), dp(4))
                 if (f == selected) setBackgroundColor(0xFFE0D4F5.toInt())
                 setOnClickListener { selected = f; render() }
             })

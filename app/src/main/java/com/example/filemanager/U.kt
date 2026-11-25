@@ -5,7 +5,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.app.AlertDialog
+import android.view.View
+import android.view.WindowManager
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -22,6 +27,29 @@ import java.util.zip.ZipOutputStream
 
 object U {
     val PURPLE = 0xFFBB86FC.toInt()
+    var ctx: Context? = null
+
+    // ---- Liquid Glass theme ----
+    fun isGlass(): Boolean = ctx?.let { prefs(it).getBoolean("glass", true) } ?: false
+    fun glassStyle(): String = ctx?.let { prefs(it).getString("glassStyle", "aurora") } ?: "aurora"
+    fun dark(): Boolean = isGlass() && GlassBackground.isDark(glassStyle())
+    /** Main text colour for the current theme. */
+    fun text(): Int = if (isGlass()) (if (dark()) Color.WHITE else 0xFF14142B.toInt()) else Color.BLACK
+    fun text2(): Int = if (isGlass()) (if (dark()) 0xFFC9C9E0.toInt() else 0xFF4A4A68.toInt()) else 0xFF777777.toInt()
+    fun pageBg(fallback: Int): Drawable = if (isGlass()) GlassBackground(glassStyle()) else ColorDrawable(fallback)
+    fun styleWindow(a: Activity, fallback: Int) {
+        a.window.setBackgroundDrawable(pageBg(fallback))
+        if (isGlass()) {
+            a.window.statusBarColor = Color.TRANSPARENT
+            a.window.navigationBarColor = Color.TRANSPARENT
+            var f = a.window.decorView.systemUiVisibility
+            val light = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+            f = if (dark()) f and light.inv() else f or light
+            a.window.decorView.systemUiVisibility = f
+        }
+    }
+    fun builder(c: Context): AlertDialog.Builder = AlertDialog.Builder(c,
+        if (dark()) android.R.style.Theme_Material_Dialog_Alert else android.R.style.Theme_Material_Light_Dialog_Alert)
     private val TEXT = setOf("txt", "xml", "html", "htm", "js", "css", "json", "md", "py", "log", "csv", "java", "kt", "ini", "conf", "yml", "yaml", "sh", "php", "svg")
 
     fun prefs(c: Context) = c.getSharedPreferences("fm", Context.MODE_PRIVATE)
@@ -33,9 +61,10 @@ object U {
         val l = (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255
         return if (l > 0.5) Color.BLACK else Color.WHITE
     }
-    fun rounded(color: Int, r: Float = 36f) = GradientDrawable().apply { setColor(color); cornerRadius = r }
-    fun btn(c: Context, text: String, color: Int = PURPLE, tc: Int = Color.BLACK, click: () -> Unit) = Button(c).apply {
-        this.text = text; isAllCaps = false; setTextColor(tc); background = rounded(color)
+    fun flat(color: Int, r: Float = 36f) = GradientDrawable().apply { setColor(color); cornerRadius = r }
+    fun rounded(color: Int, r: Float = 36f): Drawable = if (isGlass()) GlassDrawable(color, r, dark()) else flat(color, r)
+    fun btn(c: Context, text: String, color: Int = PURPLE, tc: Int = 0, click: () -> Unit) = Button(c).apply {
+        this.text = text; isAllCaps = false; setTextColor(if (tc == 0) (if (dark()) Color.WHITE else Color.BLACK) else tc); background = rounded(color)
         minHeight = 0; minimumHeight = dp(c, 44); setPadding(dp(c, 14), dp(c, 6), dp(c, 14), dp(c, 6))
         setOnClickListener { click() }
     }
@@ -110,4 +139,23 @@ object U {
             }
         } else a.requestPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE, android.Manifest.permission.WRITE_EXTERNAL_STORAGE), 1)
     }
+}
+
+/** Show a dialog with a frosted glass window (and background blur on Android 12+). */
+fun AlertDialog.Builder.glass(): AlertDialog {
+    val d = create()
+    if (U.isGlass()) {
+        val dk = U.dark()
+        d.window?.setBackgroundDrawable(GlassDrawable(if (dk) 0xFF14142B.toInt() else Color.WHITE, 60f, dk, true))
+    }
+    d.show()
+    if (U.isGlass() && Build.VERSION.SDK_INT >= 31) {
+        try {
+            d.window?.let { w ->
+                w.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                val lp = w.attributes; lp.blurBehindRadius = 40; w.attributes = lp
+            }
+        } catch (_: Throwable) {}
+    }
+    return d
 }

@@ -36,10 +36,10 @@ class MainActivity : Activity() {
         buildUi()
         if (!U.hasAccess(this) && !asked) {
             asked = true
-            AlertDialog.Builder(this).setTitle("Allow file access")
+            U.builder(this).setTitle("Allow file access")
                 .setMessage("To browse files and create folders on device storage, grant \"All files access\".")
                 .setPositiveButton("Grant") { _, _ -> U.askAccess(this) }
-                .setNegativeButton("Later", null).show()
+                .setNegativeButton("Later", null).glass()
         }
     }
 
@@ -53,9 +53,9 @@ class MainActivity : Activity() {
     private fun lp1() = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { setMargins(dp(4), dp(4), dp(4), dp(4)) }
 
     private fun buildUi() {
-        val bg = U.bg(this); fg = U.fg(bg)
+        val bg = U.bg(this); fg = U.text(); U.styleWindow(this, bg)
         val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL; setBackgroundColor(bg); fitsSystemWindows = true
+            orientation = LinearLayout.VERTICAL; fitsSystemWindows = true
             setPadding(dp(8), dp(4), dp(8), dp(8))
         }
         val tabs = LinearLayout(this)
@@ -75,7 +75,7 @@ class MainActivity : Activity() {
         root.addView(HorizontalScrollView(this).apply { addView(bar) })
 
         pathView = TextView(this).apply {
-            setTextColor(Color.BLACK); textSize = 14f; setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(U.text()); textSize = 14f; setTypeface(typeface, android.graphics.Typeface.BOLD)
             background = U.rounded(0xFFBFB8D6.toInt(), dp(14).toFloat()); setPadding(dp(12), dp(8), dp(12), dp(8))
         }
         root.addView(pathView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(6), 0, dp(6)) })
@@ -101,7 +101,14 @@ class MainActivity : Activity() {
             setOnItemClickListener { _, _, p, _ -> open(items[p]) }
             setOnItemLongClickListener { _, _, p, _ -> menu(items[p]); true }
         }
-        root.addView(listView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        val listLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f).apply { setMargins(0, dp(4), 0, dp(8)) }
+        if (U.isGlass()) {
+            val card = FrameLayout(this).apply {
+                background = U.rounded(Color.WHITE, dp(26).toFloat()); clipToOutline = true; setPadding(dp(4), dp(6), dp(4), dp(6))
+                addView(listView)
+            }
+            root.addView(card, listLp)
+        } else root.addView(listView, listLp)
 
         val bottom = LinearLayout(this).apply { background = U.rounded(0xFF86A2CC.toInt(), dp(22).toFloat()); setPadding(dp(10), dp(8), dp(10), dp(8)); gravity = Gravity.CENTER_VERTICAL }
         bottom.addView(U.btn(this, "Paste") { paste() }, lp1())
@@ -151,10 +158,11 @@ class MainActivity : Activity() {
     private fun open(f: File) {
         when {
             f.isDirectory -> { cur = f; refresh() }
-            U.ext(f.name) == "zip" -> AlertDialog.Builder(this).setTitle(f.name)
+            U.ext(f.name) in APK_EXT -> installApk(f)
+            U.ext(f.name) == "zip" -> U.builder(this).setTitle(f.name)
                 .setItems(arrayOf("Extract here", "Run in sandbox", "Open with…")) { _, w ->
                     when (w) { 0 -> extract(f); 1 -> sandbox(f); else -> viewExternal(f) }
-                }.show()
+                }.glass()
             U.isText(f.name) -> edit(f)
             else -> viewExternal(f)
         }
@@ -175,6 +183,13 @@ class MainActivity : Activity() {
             startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType(U.mime(f.name)).putExtra(Intent.EXTRA_STREAM, uri(f)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), "Share"))
         } catch (e: Exception) { toast("Can't share this") }
     }
+    private val APK_EXT = setOf("apk", "apks", "xapk", "apkm")
+    private fun installApk(f: File) = startActivity(Intent(this, ApkInstallActivity::class.java).putExtra("path", f.absolutePath))
+    private fun afterApk(out: File) {
+        refresh()
+        U.builder(this).setTitle("Done").setMessage("Saved: ${out.name}")
+            .setPositiveButton("Install") { _, _ -> installApk(out) }.setNegativeButton("OK", null).glass()
+    }
     private fun edit(f: File) = startActivity(Intent(this, EditorActivity::class.java).putExtra("path", f.absolutePath))
     private fun sandbox(f: File) = startActivity(Intent(this, SandboxActivity::class.java).putExtra("path", f.absolutePath))
 
@@ -182,6 +197,14 @@ class MainActivity : Activity() {
     private fun menu(f: File) {
         val acts = mutableListOf<Pair<String, () -> Unit>>()
         fun add(label: String, a: () -> Unit) { acts.add(Pair(label, a)) }
+        if (f.isFile && U.ext(f.name) in APK_EXT) add("Install") { installApk(f) }
+        if (f.isFile && U.ext(f.name) == "apk") {
+            add("Sign APK…") { ApkTools.signDialog(this, f) { afterApk(it) } }
+            add("Clone APK (auto sign)…") { ApkTools.cloneDialog(this, f) { afterApk(it) } }
+        }
+        if (f.isFile && U.ext(f.name) in setOf("p12", "pfx", "bks", "keystore")) add("Use as signing key") {
+            U.prefs(this).edit().putString("ks_path", f.absolutePath).apply(); toast("Saved. Choose \"Custom keystore\" when signing")
+        }
         if (f.isFile && U.ext(f.name) in setOf("html", "htm", "zip")) add("Sandbox") { sandbox(f) }
         add("Properties") { props(f) }
         if (f.isFile) { add("Share") { share(f) }; add("Open in Chrome") { chrome(f) }; add("Edit") { edit(f) } }
@@ -192,14 +215,14 @@ class MainActivity : Activity() {
         add("Zip") { zip(f) }
         add("Pin") { pin(f) }
         add("Delete") { delete(f) }
-        AlertDialog.Builder(this).setTitle(f.name).setItems(acts.map { it.first }.toTypedArray()) { _, w -> acts[w].second() }.show()
+        U.builder(this).setTitle(f.name).setItems(acts.map { it.first }.toTypedArray()) { _, w -> acts[w].second() }.glass()
     }
 
     private fun ask(title: String, initial: String, ok: (String) -> Unit) {
         val et = EditText(this).apply { setText(initial); inputType = InputType.TYPE_CLASS_TEXT; setSelection(0, initial.substringBeforeLast('.', initial).length) }
-        AlertDialog.Builder(this).setTitle(title).setView(et)
+        U.builder(this).setTitle(title).setView(et)
             .setPositiveButton("OK") { _, _ -> val s = et.text.toString().trim(); if (s.isNotEmpty() && !s.contains('/')) ok(s) else toast("Invalid name") }
-            .setNegativeButton("Cancel", null).show()
+            .setNegativeButton("Cancel", null).glass()
     }
 
     private fun push(label: String, a: () -> Unit) = runOnUiThread { undoStack.add(Pair(label, a)) }
@@ -215,9 +238,9 @@ class MainActivity : Activity() {
         val t = File(f.parentFile, n)
         if (t.exists()) toast("Name already exists") else if (f.renameTo(t)) { push("rename") { t.renameTo(f) }; refresh() } else toast("Rename failed")
     }
-    private fun delete(f: File) = AlertDialog.Builder(this).setTitle("Delete ${f.name}?").setMessage("This can't be undone.")
+    private fun delete(f: File) = U.builder(this).setTitle("Delete ${f.name}?").setMessage("This can't be undone.")
         .setPositiveButton("Delete") { _, _ -> work("Deleting…") { if (!f.deleteRecursively()) throw Exception("not allowed") } }
-        .setNegativeButton("Cancel", null).show()
+        .setNegativeButton("Cancel", null).glass()
     private fun paste() {
         val s = clip ?: return toast("Nothing to paste")
         if (!s.exists()) { clip = null; return toast("Source no longer exists") }
@@ -240,14 +263,14 @@ class MainActivity : Activity() {
     private fun extract(f: File) { val d = U.uniq(f.parentFile!!, f.nameWithoutExtension); work("Extracting…") { U.unzip(f, d); push("extract") { d.deleteRecursively() } } }
 
     // ---------- create ----------
-    private fun plusMenu() = AlertDialog.Builder(this).setTitle("Create in ${cur.name}")
+    private fun plusMenu() = U.builder(this).setTitle("Create in ${cur.name}")
         .setItems(arrayOf("New folder", "New file (.txt .xml .html …)", "New empty .zip")) { _, w ->
             when (w) {
                 0 -> ask("Folder name", "New folder") { create(File(cur, it), true) }
                 1 -> ask("File name with extension", "new.txt") { create(File(cur, it), false) }
                 else -> ask("Zip name", "new.zip") { n -> create(File(cur, if (n.endsWith(".zip")) n else "$n.zip"), false, zip = true) }
             }
-        }.show()
+        }.glass()
     private fun create(f: File, dir: Boolean, zip: Boolean = false) {
         if (f.exists()) return toast("Already exists")
         val ok = try {
@@ -261,16 +284,16 @@ class MainActivity : Activity() {
         Thread {
             val size = if (f.isDirectory) f.walkTopDown().filter { it.isFile }.sumOf { it.length() } else f.length()
             runOnUiThread {
-                AlertDialog.Builder(this).setTitle("Properties").setMessage(
+                U.builder(this).setTitle("Properties").setMessage(
                     "Name: ${f.name}\nPath: ${f.absolutePath}\nType: ${if (f.isDirectory) "Folder" else U.mime(f.name)}\n" +
                         "Size: ${U.size(size)}\nModified: ${U.date(f.lastModified())}\nReadable: ${f.canRead()}  Writable: ${f.canWrite()}"
-                ).setPositiveButton("OK", null).show()
+                ).setPositiveButton("OK", null).glass()
             }
         }.start()
     }
     private fun searchDialog() {
         val et = EditText(this).apply { hint = "file or folder name"; inputType = InputType.TYPE_CLASS_TEXT }
-        AlertDialog.Builder(this).setTitle("Search in ${cur.name}").setView(et)
+        U.builder(this).setTitle("Search in ${cur.name}").setView(et)
             .setPositiveButton("Search") { _, _ ->
                 val q = et.text.toString().trim(); if (q.isEmpty()) return@setPositiveButton
                 toast("Searching…")
@@ -278,13 +301,13 @@ class MainActivity : Activity() {
                     val hits = cur.walkTopDown().filter { it != cur && it.name.contains(q, true) }.take(300).toList()
                     runOnUiThread {
                         if (hits.isEmpty()) toast("No results") else
-                            AlertDialog.Builder(this).setTitle("${hits.size} result(s)")
+                            U.builder(this).setTitle("${hits.size} result(s)")
                                 .setItems(hits.map { it.relativeTo(cur).path }.toTypedArray()) { _, w ->
                                     val h = hits[w]; if (h.isDirectory) { cur = h; refresh() } else { cur = h.parentFile!!; refresh() }
-                                }.show()
+                                }.glass()
                     }
                 }.start()
-            }.setNegativeButton("Cancel", null).show()
+            }.setNegativeButton("Cancel", null).glass()
     }
     private fun pin(f: File) {
         val s = U.prefs(this).getStringSet("pins", emptySet())!!.toMutableSet(); s.add(f.absolutePath)
@@ -299,7 +322,7 @@ class MainActivity : Activity() {
         box.addView(U.btn(this, "Download (go)", Color.WHITE) { dlg?.dismiss(); navigate(File(U.cRoot(), "Download")) })
         for (p in pins) {
             val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; background = U.rounded(Color.WHITE, dp(14).toFloat()); setPadding(dp(10), dp(6), dp(10), dp(6)) }
-            val label = TextView(this).apply { text = File(p).name + "\n" + p; textSize = 12f; setTextColor(Color.BLACK) }
+            val label = TextView(this).apply { text = File(p).name + "\n" + p; textSize = 12f; setTextColor(U.text()) }
             row.addView(label, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             row.addView(U.btn(this, "go", 0xFFBDBDBD.toInt()) {
                 dlg?.dismiss(); val f = File(p)
@@ -311,6 +334,6 @@ class MainActivity : Activity() {
             })
             box.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, dp(6), 0, 0) })
         }
-        dlg = AlertDialog.Builder(this).setTitle("Pinned").setView(ScrollView(this).apply { addView(box) }).setNegativeButton("Close", null).show()
+        dlg = U.builder(this).setTitle("Pinned").setView(ScrollView(this).apply { addView(box) }).setNegativeButton("Close", null).glass()
     }
 }
