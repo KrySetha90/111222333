@@ -13,6 +13,7 @@ import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.TextView
 import com.android.apksig.ApkSigner
+import com.example.somepackage.AxmlPatcher
 import java.io.File
 import java.io.FilterOutputStream
 import java.io.OutputStream
