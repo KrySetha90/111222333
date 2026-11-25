@@ -9,8 +9,8 @@ android {
         applicationId = "com.example.filemanager"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "2.0"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -18,4 +18,7 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 }
-dependencies { implementation("androidx.core:core:1.13.1") }
+dependencies {
+    implementation("androidx.core:core:1.13.1")
+    implementation("com.android.tools.build:apksig:8.5.2")
+}
