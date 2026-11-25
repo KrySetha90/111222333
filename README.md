@@ -1,8 +1,8 @@
-# File Manager (Android)
+# File_XD2 v2.0
 
-Build the APK without installing anything:
-1. Create a GitHub repo, upload this whole folder (keep `.github/`), push to `main`.
-2. Open the repo's **Actions** tab → "Build APK" → when it finishes, download the **FileManager-APK** artifact (app-debug.apk).
-3. Install it, open the app, tap **Grant** for "All files access".
+New in 2.0
+- In-app APK installer (long-press / tap .apk, .apks, .xapk, .apkm)
+- Liquid Glass UI (Settings > CUSTOM · background > Liquid Glass)
+- Sign APK (v1+v2+v3, v1+v2, v1+v3, v1) and Clone APK (auto sign)
 
-Or open the folder in Android Studio and press Run.
+Build: push to GitHub (main) -> Actions -> "Build Android APK" -> download artifact app-debug.
